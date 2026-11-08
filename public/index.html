@@ -95,6 +95,14 @@
   .empty{text-align:center;color:var(--muted);padding:40px 10px;}
   .push-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--muted);}
   .push-row button{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:var(--pill);padding:8px 14px;cursor:pointer;font-size:13px;}
+  .summary .box .label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .info-btn{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-weight:bold;font-style:italic;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-top:10px;}
+  .year-head{display:flex;justify-content:space-between;align-items:center;font-size:15px;}
+  .year-total{color:var(--accent);}
+  .year-sub{color:var(--muted);font-size:12px;margin:2px 0 6px;}
+  .year-item{color:var(--muted);font-size:12px;padding:3px 0;border-top:1px dashed var(--border);}
+  .year-notes{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.9;}
   a, a:visited{color:var(--accent);}
 </style>
 
@@ -116,7 +124,7 @@
     <h1>اقساط من - امیر سیادتی</h1>
     <div class="summary">
       <div class="box">
-        <div class="label">مجموع اقساط ماهیانه</div>
+        <div class="label"><span>مجموع اقساط ماهیانه</span><button class="info-btn" id="yearInfoBtn" aria-label="مجموع اقساط هر سال">i</button></div>
         <div class="value" id="sumTotal">۰ ریال</div>
       </div>
       <div class="box">
@@ -166,6 +174,16 @@
     <div class="sheet-actions">
       <button class="btn-secondary" id="cancelForm">انصراف</button>
       <button class="btn-primary" id="saveForm">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="yearOverlay" style="display:none;">
+  <div class="sheet">
+    <h2>مجموع اقساط به تفکیک سال</h2>
+    <div id="yearList"></div>
+    <div class="sheet-actions">
+      <button class="btn-secondary" id="closeYear">بستن</button>
     </div>
   </div>
 </div>
@@ -227,6 +245,7 @@ $("loginBtn").onclick=async()=>{
 async function loadPlans(){
   const d=await api("/api/plans");
   if(!d.ok) return;
+  lastPlans=d.plans;
   $("sumTotal").textContent=fmtRial(d.summary.total_monthly)+" ریال";
   if(d.summary.next_due_jalali){
     $("sumNext").textContent = d.summary.next_due_jalali+" — "+d.summary.next_due_title;
@@ -309,6 +328,56 @@ async function loadPlans(){
 }
 
 function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+/* ---------- مجموع اقساط به تفکیک سال ---------- */
+let lastPlans=[];
+function computeYearTotals(plans){
+  const years={};
+  let unlimited=0, noDate=0, maxYear=todayJalali()[0];
+  const yearOf=(p,i)=>p.start_jyear+Math.floor((p.start_jmonth-1+i)/12);
+  const add=(p,i)=>{
+    const y=yearOf(p,i);
+    const e=years[y]||(years[y]={total:0,count:0,items:{}});
+    e.total+=p.amount; e.count++;
+    const it=e.items[p.id]||(e.items[p.id]={title:p.title,amount:p.amount,count:0});
+    it.count++;
+  };
+  const active=plans.filter(p=>!p.completed);
+  for(const p of active){
+    if(p.no_date){ noDate++; continue; }
+    if(p.total_count==null){ unlimited++; continue; }
+    for(let i=p.paid_count;i<p.total_count;i++) add(p,i);
+    maxYear=Math.max(maxYear, yearOf(p,p.total_count-1));
+  }
+  for(const p of active){
+    if(p.no_date||p.total_count!=null) continue;
+    for(let i=p.paid_count; yearOf(p,i)<=maxYear; i++) add(p,i);
+  }
+  return {years,unlimited,noDate};
+}
+
+function openYearInfo(){
+  const {years,unlimited,noDate}=computeYearTotals(lastPlans);
+  const ys=Object.keys(years).map(Number).sort((a,b)=>a-b);
+  const cur=todayJalali()[0];
+  let html="";
+  if(!ys.length) html='<div class="empty">قسط تاریخ‌داری برای محاسبه وجود ندارد.</div>';
+  for(const y of ys){
+    const e=years[y];
+    const items=Object.values(e.items).map(it=>
+      `<div class="year-item">${escapeHtml(it.title)} — ${toFa(it.count)} × ${fmtRial(it.amount)}</div>`).join("");
+    html+=`<div class="year-row"><div class="year-head"><b>${toFa(y)}${y===cur?" (امسال)":""}</b><b class="year-total">${fmtRial(e.total)} ریال</b></div><div class="year-sub">${toFa(e.count)} قسط</div>${items}</div>`;
+  }
+  const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید."];
+  if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدود تا پایان آخرین سالِ لیست حساب شده است.`);
+  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) لحاظ نشده است.`);
+  html+=`<div class="year-notes">${notes.join("<br>")}</div>`;
+  $("yearList").innerHTML=html;
+  $("yearOverlay").style.display="flex";
+}
+$("yearInfoBtn").onclick=openYearInfo;
+$("closeYear").onclick=()=>{ $("yearOverlay").style.display="none"; };
+$("yearOverlay").onclick=(e)=>{ if(e.target===$("yearOverlay")) $("yearOverlay").style.display="none"; };
 
 /* ---------- فرم افزودن/ویرایش ---------- */
 function fillYearMonthSelects(selYear, selMonth){
