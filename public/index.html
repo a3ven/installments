@@ -96,21 +96,20 @@
   .push-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--muted);}
   .push-row button{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:var(--pill);padding:8px 14px;cursor:pointer;font-size:13px;}
   .summary .box .label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-  .info-btn{width:38px;height:38px;flex:none;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:20px;font-weight:bold;font-style:italic;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .info-btn{flex:none;}
   #yearOverlay .sheet h2{font-size:22px;}
   /* دو کادر بالای صفحه: کم‌ارتفاع، دو ردیف داده، i وسط‌چین عمودی */
   .summary{flex-wrap:nowrap;gap:8px;align-items:stretch;}
   .summary .box{min-width:0;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .summary .box{flex:1 1 0;width:0;}
   .summary .box .txt{min-width:0;flex:1;}
-  .summary .box .label{display:block;margin-bottom:2px;line-height:1.5;}
+  .summary .box .label{display:block;margin-bottom:2px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .summary .box .value{font-size:15px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* لبه‌های هدر دقیقاً هم‌تراز با کارت‌های اقساط (container: عرض ۶۴۰ با حاشیه‌ی ۱۶) */
   .header-in{max-width:608px;margin:0 auto;}
   .head-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
   .head-row h1{margin:0;min-width:0;}
   .push-icon{flex:none;}
-  .push-icon svg{width:20px;height:20px;}
   .push-icon.off{color:#ff6b5d;border-color:rgba(231,76,60,.55);background:rgba(231,76,60,.12);}
   .next-days{font-size:14px;color:var(--text);font-weight:bold;}
   .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-top:12px;}
@@ -155,11 +154,11 @@
           <div class="label">مجموع اقساط ماهیانه</div>
           <div class="value" id="sumTotal">۰ ریال</div>
         </div>
-        <button class="info-btn" id="yearInfoBtn" aria-label="مجموع اقساط هر سال">i</button>
+        <button class="icon-btn info-btn" id="yearInfoBtn" aria-label="مجموع اقساط هر سال" title="مجموع اقساط هر سال"><svg viewBox="0 0 24 24"><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg></button>
       </div>
       <div class="box">
         <div class="txt">
-          <div class="label">موعد قسط بعدی <span class="next-days" id="sumNextDays"></span></div>
+          <div class="label">قسط بعدی <span class="next-days" id="sumNextDays"></span></div>
           <div class="value" id="sumNext">—</div>
         </div>
       </div>
