@@ -98,6 +98,15 @@
   .summary .box .label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
   .info-btn{width:38px;height:38px;flex:none;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:20px;font-weight:bold;font-style:italic;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
   #yearOverlay .sheet h2{font-size:22px;}
+  /* دو کادر بالای صفحه: کم‌ارتفاع، دو ردیف داده، i وسط‌چین عمودی */
+  .summary{flex-wrap:nowrap;gap:8px;align-items:stretch;}
+  .summary .box{min-width:0;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .summary .box:first-child{flex:0 0 auto;}
+  .summary .box:last-child{flex:1 1 0;}
+  .summary .box .txt{min-width:0;}
+  .summary .box .label{display:block;margin-bottom:2px;line-height:1.5;}
+  .summary .box .value{line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .next-days{font-size:14px;color:var(--text);font-weight:bold;}
   .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-top:12px;}
   .year-head{display:flex;justify-content:space-between;align-items:center;font-size:20px;}
   .year-total{color:var(--accent);}
@@ -132,13 +141,17 @@
     <h1>اقساط من - امیر سیادتی</h1>
     <div class="summary">
       <div class="box">
-        <div class="label"><span>مجموع اقساط ماهیانه</span><button class="info-btn" id="yearInfoBtn" aria-label="مجموع اقساط هر سال">i</button></div>
-        <div class="value" id="sumTotal">۰ ریال</div>
+        <div class="txt">
+          <div class="label">مجموع اقساط ماهیانه</div>
+          <div class="value" id="sumTotal">۰ ریال</div>
+        </div>
+        <button class="info-btn" id="yearInfoBtn" aria-label="مجموع اقساط هر سال">i</button>
       </div>
       <div class="box">
-        <div class="label">موعد قسط بعدی</div>
-        <div class="value" id="sumNext">—</div>
-        <div class="remaining-next" id="sumNextDays"></div>
+        <div class="txt">
+          <div class="label">موعد قسط بعدی <span class="next-days" id="sumNextDays"></span></div>
+          <div class="value" id="sumNext">—</div>
+        </div>
       </div>
     </div>
   </header>
@@ -259,7 +272,7 @@ async function loadPlans(){
     $("sumNext").textContent = d.summary.next_due_jalali+" — "+d.summary.next_due_title;
     const todayNo = jalaliToDayNumber(...todayJalali());
     const days = d.summary.next_due_sort - todayNo;
-    $("sumNextDays").textContent = days < 0 ? "⚠️ سررسید گذشته" : (days === 0 ? "🔴 سررسید امروز" : `⏳ ${toFa(days)} روز مانده تا قسط بعدی`);
+    $("sumNextDays").textContent = "(" + (days < 0 ? "⚠️ سررسید گذشته" : (days === 0 ? "🔴 سررسید امروز" : `⏳ ${toFa(days)} روز مانده`)) + ")";
   } else {
     $("sumNext").textContent = "—";
     $("sumNextDays").textContent = "";
@@ -354,7 +367,14 @@ function computeYearTotals(plans){
   const active=plans.filter(p=>!p.completed);
   const [curY,curM]=todayJalali();
   for(const p of active){
-    if(p.no_date){ noDate++; continue; }
+    if(p.no_date){
+      noDate++;
+      if(p.total_count!=null){
+        const rem=Math.max(0,p.total_count-p.paid_count);
+        if(rem>0) maxYear=Math.max(maxYear, curY+Math.floor((curM-1+rem-1)/12));
+      }
+      continue;
+    }
     if(p.total_count==null){ unlimited++; continue; }
     for(let i=p.paid_count;i<p.total_count;i++) add(p,i);
     maxYear=Math.max(maxYear, yearOf(p,p.total_count-1));
@@ -366,6 +386,18 @@ function computeYearTotals(plans){
   /* اقساط بدون تاریخ (کسر از حقوق): هر ماه، از ماه جاری تا آخرین سالِ اقساط تاریخ‌دار */
   for(const p of active){
     if(!p.no_date) continue;
+    if(p.total_count!=null){
+      /* تعداددار: هر ماه یک قسط، از ماه جاری، به اندازه‌ی تعداد باقی‌مانده */
+      const rem=Math.max(0,p.total_count-p.paid_count);
+      for(let k=0;k<rem;k++){
+        const y=curY+Math.floor((curM-1+k)/12), m=(curM-1+k)%12;
+        const e=years[y]||(years[y]={total:0,count:0,items:{},months:Array(12).fill(0)});
+        const it=e.items["nd"+p.id]||(e.items["nd"+p.id]={title:p.title,amount:p.amount,count:0});
+        e.total+=p.amount; e.count++; e.months[m]+=p.amount; it.count++;
+      }
+      continue;
+    }
+    /* نامحدود: هر ماه تا آخرین سال */
     for(let y=curY; y<=maxYear; y++){
       const e=years[y]||(years[y]={total:0,count:0,items:{},months:Array(12).fill(0)});
       const it=e.items["nd"+p.id]||(e.items["nd"+p.id]={title:p.title,amount:p.amount,count:0});
@@ -381,7 +413,16 @@ function computeYearTotals(plans){
 function startOfYearMonthly(plans,y){
   let sum=0;
   for(const p of plans){
-    if(p.no_date){ if(!p.completed && y>=todayJalali()[0]) sum+=p.amount; continue; }
+    if(p.no_date){
+      if(p.completed) continue;
+      const [cy,cm]=todayJalali();
+      if(p.total_count==null){ if(y>=cy) sum+=p.amount; }
+      else if(y>cy){
+        const k=(y-cy)*12-(cm-1);
+        if(k<Math.max(0,p.total_count-p.paid_count)) sum+=p.amount;
+      }
+      continue;
+    }
     if(!p.start_jyear) continue;
     const i=(y-p.start_jyear)*12-(p.start_jmonth-1);
     if(i<0) continue;
@@ -413,7 +454,7 @@ function openYearInfo(){
   }
   const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید.","«ماهیانه اول سال» مجموع اقساطی است که در فروردینِ همان سال سررسید دارند (پرداخت‌شده یا نشده)."];
   if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدودِ تاریخ‌دار تا پایان ${toFa(maxYear)} (آخرین سالِ اقساط تاریخ‌دار) حساب شده است.`);
-  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) هر ماه، از ماه جاری تا پایان ${toFa(maxYear)}، حساب شده است.`);
+  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) حساب شده است: اگر تعداد دارد، ماهی یک قسط از ماه جاری به اندازه‌ی تعداد باقی‌مانده (با هر «ثبت پرداخت» یک ماه کم می‌شود)؛ اگر نامحدود است، هر ماه تا پایان ${toFa(maxYear)}.`);
   html+=`<div class="year-notes">${notes.join("<br>")}</div>`;
   $("yearList").innerHTML=html;
   $("yearOverlay").style.display="flex";
