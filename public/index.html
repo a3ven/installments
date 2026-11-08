@@ -352,6 +352,7 @@ function computeYearTotals(plans){
     it.count++;
   };
   const active=plans.filter(p=>!p.completed);
+  const [curY,curM]=todayJalali();
   for(const p of active){
     if(p.no_date){ noDate++; continue; }
     if(p.total_count==null){ unlimited++; continue; }
@@ -362,14 +363,26 @@ function computeYearTotals(plans){
     if(p.no_date||p.total_count!=null) continue;
     for(let i=p.paid_count; yearOf(p,i)<=maxYear; i++) add(p,i);
   }
-  return {years,unlimited,noDate};
+  /* اقساط بدون تاریخ (کسر از حقوق): هر ماه، از ماه جاری تا آخرین سالِ اقساط تاریخ‌دار */
+  for(const p of active){
+    if(!p.no_date) continue;
+    for(let y=curY; y<=maxYear; y++){
+      const e=years[y]||(years[y]={total:0,count:0,items:{},months:Array(12).fill(0)});
+      const it=e.items["nd"+p.id]||(e.items["nd"+p.id]={title:p.title,amount:p.amount,count:0});
+      for(let m=(y===curY?curM:1); m<=12; m++){
+        e.total+=p.amount; e.count++; e.months[m-1]+=p.amount; it.count++;
+      }
+    }
+  }
+  return {years,unlimited,noDate,maxYear};
 }
 
 /* مجموع اقساط ماهیانه‌ی فروردینِ یک سال (اول سال) — شامل اقساط پرداخت‌شده هم می‌شود تا عدد اول سال ثابت بماند */
 function startOfYearMonthly(plans,y){
   let sum=0;
   for(const p of plans){
-    if(p.no_date||!p.start_jyear) continue;
+    if(p.no_date){ if(!p.completed && y>=todayJalali()[0]) sum+=p.amount; continue; }
+    if(!p.start_jyear) continue;
     const i=(y-p.start_jyear)*12-(p.start_jmonth-1);
     if(i<0) continue;
     if(p.total_count!=null && i>=p.total_count) continue;
@@ -379,7 +392,7 @@ function startOfYearMonthly(plans,y){
 }
 
 function openYearInfo(){
-  const {years,unlimited,noDate}=computeYearTotals(lastPlans);
+  const {years,unlimited,noDate,maxYear}=computeYearTotals(lastPlans);
   const ys=Object.keys(years).map(Number).sort((a,b)=>a-b);
   const cur=todayJalali()[0];
   let html="";
@@ -399,8 +412,8 @@ function openYearInfo(){
       ${items}</div>`;
   }
   const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید.","«ماهیانه اول سال» مجموع اقساطی است که در فروردینِ همان سال سررسید دارند (پرداخت‌شده یا نشده)."];
-  if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدود تا پایان آخرین سالِ لیست حساب شده است.`);
-  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) لحاظ نشده است.`);
+  if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدودِ تاریخ‌دار تا پایان ${toFa(maxYear)} (آخرین سالِ اقساط تاریخ‌دار) حساب شده است.`);
+  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) هر ماه، از ماه جاری تا پایان ${toFa(maxYear)}، حساب شده است.`);
   html+=`<div class="year-notes">${notes.join("<br>")}</div>`;
   $("yearList").innerHTML=html;
   $("yearOverlay").style.display="flex";
