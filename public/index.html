@@ -101,11 +101,17 @@
   /* دو کادر بالای صفحه: کم‌ارتفاع، دو ردیف داده، i وسط‌چین عمودی */
   .summary{flex-wrap:nowrap;gap:8px;align-items:stretch;}
   .summary .box{min-width:0;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .summary .box:first-child{flex:0 0 auto;}
-  .summary .box:last-child{flex:1 1 0;}
-  .summary .box .txt{min-width:0;}
+  .summary .box{flex:1 1 0;width:0;}
+  .summary .box .txt{min-width:0;flex:1;}
   .summary .box .label{display:block;margin-bottom:2px;line-height:1.5;}
-  .summary .box .value{line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .summary .box .value{font-size:15px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* لبه‌های هدر دقیقاً هم‌تراز با کارت‌های اقساط (container: عرض ۶۴۰ با حاشیه‌ی ۱۶) */
+  .header-in{max-width:608px;margin:0 auto;}
+  .head-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
+  .head-row h1{margin:0;min-width:0;}
+  .push-box{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;}
+  .push-box #pushStatus{font-size:11px;color:var(--muted);line-height:1.3;}
+  .push-box button{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:var(--pill);padding:4px 12px;cursor:pointer;font-size:12px;}
   .next-days{font-size:14px;color:var(--text);font-weight:bold;}
   .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-top:12px;}
   .year-head{display:flex;justify-content:space-between;align-items:center;font-size:20px;}
@@ -138,7 +144,14 @@
 
 <div id="app" style="display:none;">
   <header>
-    <h1>اقساط من - امیر سیادتی</h1>
+   <div class="header-in">
+    <div class="head-row">
+      <h1>اقساط من - امیر سیادتی</h1>
+      <div class="push-box">
+        <span id="pushStatus">اعلان‌ها غیرفعال است</span>
+        <button id="pushBtn">فعال‌سازی اعلان</button>
+      </div>
+    </div>
     <div class="summary">
       <div class="box">
         <div class="txt">
@@ -154,14 +167,10 @@
         </div>
       </div>
     </div>
+   </div>
   </header>
 
   <div class="container">
-    <div class="push-row">
-      <span id="pushStatus">اعلان‌ها غیرفعال است</span>
-      <button id="pushBtn">فعال‌سازی اعلان</button>
-    </div>
-
     <button class="add-btn" id="openAdd">+ افزودن قسط جدید</button>
     <div id="plansList"></div>
   </div>
