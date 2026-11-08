@@ -40,9 +40,11 @@
   .plan.completed{opacity:.55;}
   /* هشدار سررسید: ۱ روز مانده/امروز قرمز، ۲ تا ۳ روز مانده زرد */
   .plan.due-red{background:rgba(231,76,60,.16);border-color:var(--danger);box-shadow:0 0 0 1px rgba(231,76,60,.08);}
+  .plan.due-orange{background:rgba(255,140,0,.15);border-color:#ff8c1a;box-shadow:0 0 0 1px rgba(255,140,0,.08);}
   .plan.due-yellow{background:rgba(230,184,0,.13);border-color:var(--warn);box-shadow:0 0 0 1px rgba(230,184,0,.07);}
   .due-alert{display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:12px;font-weight:bold;}
   .due-alert.red{color:#ff6b5d;}
+  .due-alert.orange{color:#ff9d3d;}
   .due-alert.yellow{color:#f2cf35;}
   .plan-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .plan-title{font-size:16px;font-weight:bold;}
@@ -57,6 +59,7 @@
   .pay-btn{flex:1;background:var(--accent);color:#06170d;border:none;border-radius:var(--pill);padding:12px;font-weight:bold;cursor:pointer;}
   .pay-btn.pay-red{background:#e74c3c;color:#fff;}
   .pay-btn.pay-dark-red{background:#a93226;color:#fff;}
+  .pay-btn.pay-orange{background:#ff8c1a;color:#111;}
   .pay-btn.pay-yellow{background:#e6b800;color:#111;}
   .pay-btn.pay-green{background:#2ecc71;color:#062b16;}
   .undo-btn{background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:var(--pill);padding:12px 16px;cursor:pointer;}
@@ -249,18 +252,18 @@ async function loadPlans(){
       ? (p.next_due_sort - todayNo)
       : null;
     const dueClass = (!p.completed && daysLeft !== null)
-      ? (daysLeft <= 1 ? " due-red" : (daysLeft <= 3 ? " due-yellow" : ""))
+      ? (daysLeft <= 0 ? " due-red" : (daysLeft === 1 ? " due-orange" : (daysLeft <= 3 ? " due-yellow" : "")))
       : "";
     const dueAlert = (!p.completed && daysLeft !== null && daysLeft <= 3)
-      ? `<div class="due-alert ${daysLeft <= 1 ? "red" : "yellow"}">${
+      ? `<div class="due-alert ${daysLeft <= 0 ? "red" : (daysLeft === 1 ? "orange" : "yellow")}">${
           daysLeft < 0 ? "⚠️ سررسید گذشته" :
           daysLeft === 0 ? "🔴 سررسید امروز" :
-          daysLeft === 1 ? "🔴 ۱ روز مانده" :
+          daysLeft === 1 ? "🟠 ۱ روز مانده" :
           `🟡 ${toFa(daysLeft)} روز مانده`
         }</div>`
       : "";
     const payColor = p.completed ? "" : (daysLeft !== null ?
-      (daysLeft < 0 ? " pay-dark-red" : (daysLeft <= 1 ? " pay-red" : (daysLeft <= 3 ? " pay-yellow" : " pay-green"))) : " pay-green");
+      (daysLeft < 0 ? " pay-dark-red" : (daysLeft === 0 ? " pay-red" : (daysLeft === 1 ? " pay-orange" : (daysLeft <= 3 ? " pay-yellow" : " pay-green")))) : " pay-green");
     div.className="plan"+(p.completed?" completed":"")+dueClass;
     div.innerHTML=`
       <div class="plan-top">
