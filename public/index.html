@@ -97,7 +97,9 @@
   .push-row button{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:var(--pill);padding:8px 14px;cursor:pointer;font-size:13px;}
   .summary .box .label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
   .info-btn{flex:none;}
-  #yearOverlay .sheet h2{font-size:22px;}
+  #yearOverlay .sheet h2{font-size:22px;margin:0;}
+  #yearOverlay .sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:-22px;z-index:2;background:var(--card);padding:22px 0 10px;margin:-22px 0 0;}
+  #yearOverlay .sheet-head .icon-btn{flex:none;}
   /* دو کادر بالای صفحه: کم‌ارتفاع، دو ردیف داده، i وسط‌چین عمودی */
   .summary{flex-wrap:nowrap;gap:8px;align-items:stretch;}
   .summary .box{min-width:0;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -206,11 +208,11 @@
 
 <div class="overlay" id="yearOverlay" style="display:none;">
   <div class="sheet">
-    <h2>مجموع اقساط به تفکیک سال</h2>
-    <div id="yearList"></div>
-    <div class="sheet-actions">
-      <button class="btn-secondary" id="closeYear">بستن</button>
+    <div class="sheet-head">
+      <h2>مجموع اقساط به تفکیک سال</h2>
+      <button class="icon-btn" id="closeYear" aria-label="بستن" title="بستن"><svg viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button>
     </div>
+    <div id="yearList"></div>
   </div>
 </div>
 
@@ -457,10 +459,6 @@ function openYearInfo(){
       <div class="year-months"><div class="year-months-title">مجموع اقساط هر ماه:</div>${monthRows}</div>
       ${items}</div>`;
   }
-  const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید.","«ماهیانه اول سال» مجموع اقساطی است که در فروردینِ همان سال سررسید دارند (پرداخت‌شده یا نشده)."];
-  if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدودِ تاریخ‌دار تا پایان ${toFa(maxYear)} (آخرین سالِ اقساط تاریخ‌دار) حساب شده است.`);
-  if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) حساب شده است: اگر تعداد دارد، ماهی یک قسط از ماه جاری به اندازه‌ی تعداد باقی‌مانده (با هر «ثبت پرداخت» یک ماه کم می‌شود)؛ اگر نامحدود است، هر ماه تا پایان ${toFa(maxYear)}.`);
-  html+=`<div class="year-notes">${notes.join("<br>")}</div>`;
   $("yearList").innerHTML=html;
   $("yearOverlay").style.display="flex";
 }
