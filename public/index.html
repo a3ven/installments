@@ -96,13 +96,21 @@
   .push-row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--muted);}
   .push-row button{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:var(--pill);padding:8px 14px;cursor:pointer;font-size:13px;}
   .summary .box .label{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-  .info-btn{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-weight:bold;font-style:italic;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
-  .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-top:10px;}
-  .year-head{display:flex;justify-content:space-between;align-items:center;font-size:15px;}
+  .info-btn{width:38px;height:38px;flex:none;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:20px;font-weight:bold;font-style:italic;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  #yearOverlay .sheet h2{font-size:22px;}
+  .year-row{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-top:12px;}
+  .year-head{display:flex;justify-content:space-between;align-items:center;font-size:20px;}
   .year-total{color:var(--accent);}
-  .year-sub{color:var(--muted);font-size:12px;margin:2px 0 6px;}
-  .year-item{color:var(--muted);font-size:12px;padding:3px 0;border-top:1px dashed var(--border);}
-  .year-notes{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.9;}
+  .year-sub{color:var(--muted);font-size:15px;margin:3px 0 8px;}
+  .year-start{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--card);border:1px solid var(--accent-d);border-radius:var(--r-md);padding:10px 14px;margin:8px 0;font-size:17px;}
+  .year-start b{color:var(--accent);}
+  .year-months{margin:8px 0 6px;}
+  .year-months-title{color:var(--muted);font-size:14px;margin-bottom:4px;}
+  .month-row{display:flex;justify-content:space-between;align-items:center;font-size:16px;padding:4px 0;border-top:1px dashed var(--border);}
+  .month-row.first{color:var(--text);font-weight:bold;}
+  .month-row span:last-child{color:var(--text);}
+  .year-item{color:var(--muted);font-size:15px;padding:4px 0;border-top:1px dashed var(--border);}
+  .year-notes{color:var(--muted);font-size:14px;margin-top:16px;line-height:2;}
   a, a:visited{color:var(--accent);}
 </style>
 
@@ -337,8 +345,9 @@ function computeYearTotals(plans){
   const yearOf=(p,i)=>p.start_jyear+Math.floor((p.start_jmonth-1+i)/12);
   const add=(p,i)=>{
     const y=yearOf(p,i);
-    const e=years[y]||(years[y]={total:0,count:0,items:{}});
+    const e=years[y]||(years[y]={total:0,count:0,items:{},months:Array(12).fill(0)});
     e.total+=p.amount; e.count++;
+    e.months[(p.start_jmonth-1+i)%12]+=p.amount;
     const it=e.items[p.id]||(e.items[p.id]={title:p.title,amount:p.amount,count:0});
     it.count++;
   };
@@ -356,6 +365,19 @@ function computeYearTotals(plans){
   return {years,unlimited,noDate};
 }
 
+/* مجموع اقساط ماهیانه‌ی فروردینِ یک سال (اول سال) — شامل اقساط پرداخت‌شده هم می‌شود تا عدد اول سال ثابت بماند */
+function startOfYearMonthly(plans,y){
+  let sum=0;
+  for(const p of plans){
+    if(p.no_date||!p.start_jyear) continue;
+    const i=(y-p.start_jyear)*12-(p.start_jmonth-1);
+    if(i<0) continue;
+    if(p.total_count!=null && i>=p.total_count) continue;
+    sum+=p.amount;
+  }
+  return sum;
+}
+
 function openYearInfo(){
   const {years,unlimited,noDate}=computeYearTotals(lastPlans);
   const ys=Object.keys(years).map(Number).sort((a,b)=>a-b);
@@ -366,9 +388,17 @@ function openYearInfo(){
     const e=years[y];
     const items=Object.values(e.items).map(it=>
       `<div class="year-item">${escapeHtml(it.title)} — ${toFa(it.count)} × ${fmtRial(it.amount)}</div>`).join("");
-    html+=`<div class="year-row"><div class="year-head"><b>${toFa(y)}${y===cur?" (امسال)":""}</b><b class="year-total">${fmtRial(e.total)} ریال</b></div><div class="year-sub">${toFa(e.count)} قسط</div>${items}</div>`;
+    const startSum=startOfYearMonthly(lastPlans,y);
+    const monthRows=e.months.map((m,idx)=>m>0
+      ? `<div class="month-row${idx===0?" first":""}"><span>${MONTH_NAMES[idx]}</span><span>${fmtRial(m)} ریال</span></div>` : "").join("");
+    html+=`<div class="year-row">
+      <div class="year-head"><b>${toFa(y)}${y===cur?" (امسال)":""}</b><b class="year-total">${fmtRial(e.total)} ریال</b></div>
+      <div class="year-sub">${toFa(e.count)} قسط</div>
+      <div class="year-start"><span>مجموع اقساط ماهیانه در اول سال (فروردین)</span><b>${fmtRial(startSum)} ریال</b></div>
+      <div class="year-months"><div class="year-months-title">مجموع اقساط هر ماه:</div>${monthRows}</div>
+      ${items}</div>`;
   }
-  const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید."];
+  const notes=["فقط اقساط پرداخت‌نشده حساب شده‌اند و هر قسط در سالِ سررسیدش می‌آید.","«ماهیانه اول سال» مجموع اقساطی است که در فروردینِ همان سال سررسید دارند (پرداخت‌شده یا نشده)."];
   if(unlimited) notes.push(`${toFa(unlimited)} قسط نامحدود تا پایان آخرین سالِ لیست حساب شده است.`);
   if(noDate) notes.push(`${toFa(noDate)} قسط بدون تاریخ (کسر از حقوق) لحاظ نشده است.`);
   html+=`<div class="year-notes">${notes.join("<br>")}</div>`;
