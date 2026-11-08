@@ -1,0 +1,17 @@
+name = "aghsat-a7"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aghsat-a7"
+database_id = "0cfb627f-4a66-4a1d-9496-215082522adf"
+
+# هر روز ساعت 08:00 به وقت تهران (UTC+3:30) اجرا می‌شود => 04:30 UTC
+[triggers]
+crons = ["30 4 * * *"]
